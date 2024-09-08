@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "next": "^14.2.5",
+    "nextra": "latest",
+    "nextra-theme-docs": "latest",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "18.11.10",
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "index": {
+    "type": "page",
+    "display": "hidden",
+    "theme": {
+      "layout": "full"
+    }
+  },
+  "posts": {
+    "type": "menu",
+    "title": "Posts",
+    "items": {
+      "technical": { "title": "Tidy first?", "href": "/posts/tidy-first" }
+    }
+  },
+  "About": {
+    "type": "page"
+  }
+}

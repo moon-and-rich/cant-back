@@ -3,10 +3,8 @@ description: 다음 모임에 대한 일정 내용을 정리해요.
 title: ""
 labels: ["일정", "예정"]
 projects: []
-assignees:
-  - jengyoung
-  - BO-LIKE-CHICKEN
-  - dkmqflx
+assignees: ["JengYoung", "BO-LIKE-CHICKEN", "dkmqflx"]
+
 body:
   - type: markdown
     attributes:

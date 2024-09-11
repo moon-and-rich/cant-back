@@ -22,6 +22,7 @@ body:
   - type: dropdown
     id: theme
     attributes:
+      multiple: false
       label: 이슈 주제
       description: 어떤 주제로 이슈를 만드셨나요?!
       options:

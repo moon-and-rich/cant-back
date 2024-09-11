@@ -1,6 +1,6 @@
 name: 📅 일정 및 계획 작성
 description: 다음 모임에 대한 일정 내용을 정리해요.
-title: ""
+title: "[일정] "
 labels: ["일정", "예정"]
 projects: []
 assignees: ["JengYoung", "BO-LIKE-CHICKEN", "dkmqflx"]

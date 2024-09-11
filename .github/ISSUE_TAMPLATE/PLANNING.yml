@@ -1,0 +1,54 @@
+name: 📅 일정 및 계획 작성
+description: 다음 모임에 대한 일정 내용을 정리해요.
+title: ""
+labels: ["일정", "예정"]
+projects: []
+assignees:
+  - jengyoung
+  - BO-LIKE-CHICKEN
+  - dkmqflx
+body:
+  - type: markdown
+    attributes:
+      value: 👋🏻 해당 이슈는 제목에 표기된 날짜에, 다음과 같은 내용을 준비하여 모여요!
+
+  - type: input
+    id: datetime
+    attributes:
+      label: 모임 예정 일자
+      description: 모임 예정 일자를 알려주세요!
+      placeholder: YY.MM.DD
+    validations:
+      required: true
+
+  - type: dropdown
+    id: theme
+    attributes:
+      label: 이슈 주제
+      description: 어떤 주제로 이슈를 만드셨나요?!
+      options:
+        - 📖 켄트 벡의 Tidy First? - 더 나은 소프트웨어 설계를 위한 32가지 코드 정리법 (2024)
+        - 💬 기타 일정 논의
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: todo
+    attributes:
+      label: 체크리스트
+      description: 다음 일정까지 준비해야 할 것들을 알려주세요!
+      placeholder: 안건을 입력해주세요.
+      value: \- [x]
+    validations:
+      required: true
+
+  - type: textarea
+    id: etc
+    attributes:
+      label: 주의사항
+      description: 혹시 추가로 인원들이 주의해야 할 사항이 있다면 알려주세요!
+      placeholder: 주의사항 입력
+      value: 없음
+    validations:
+      required: false

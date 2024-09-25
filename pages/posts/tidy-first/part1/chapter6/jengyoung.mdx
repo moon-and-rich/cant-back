@@ -1,0 +1,427 @@
+# 응집도를 높이는 배치
+
+## 요약
+
+- 결합도를 낮추는 것도 좋지만, 응집도를 높이는 쪽으로 배치를 진행하며 리팩토링을 선행하라는 내용이었어요.
+- 두 파일에 결합도가 있으면 일단 같은 디렉토리에 넣고 변경하여, 위치를 가까이 두고 여유가 있을 때 리팩토링하라는 의미에요.
+
+### 예제 - OAuth 인증 절차 리팩토링
+
+다음은 ~~이름 모를 프로젝트~~에서 이전에 사용되던 OAuth 절차에요. 😉
+
+```tsx
+export const LoginProvider = ({ children }: React.PropsWithChildren<{}>) => {
+  /** 인증 모달1 코드*/
+  const handleOpen전역인증모달1 = () => {
+    // ...
+  };
+
+  const handleClose전역인증모달1 = () => {
+    // ...
+  };
+
+  /** 인증 모달 2 코드*/
+  const handleOpen전역인증모달2 = () => {
+    // ...
+  };
+
+  const handleClose전역인증모달2 = () => {
+    // ...
+  };
+
+  /** 네이버 */
+  const naver시작준비 = () => {
+    // ...
+  };
+
+  const naver로그인 = () => {
+    // ...
+  };
+
+  const naver토큰처리 = () => {
+    // ...
+  };
+
+  const naver리디렉션 = () => {
+    // ...
+  };
+
+  /** 카카오 */
+  const kakao시작준비 = () => {
+    // ...
+  };
+
+  const kakao로그인 = () => {
+    // ...
+  };
+
+  const kakao토큰처리 = () => {
+    // ...
+  };
+
+  const kakao리디렉션 = () => {
+    // ...
+  };
+
+  /** 애플 */
+  const apple시작준비 = () => {
+    // ...
+  };
+
+  const apple로그인 = () => {
+    // ...
+  };
+
+  const apple토큰처리 = () => {
+    // ...
+  };
+
+  const apple리디렉션 = () => {
+    // ...
+  };
+
+  React.useEffect(() => {
+    /** 웹뷰 인증 관련 메시지 처리 */
+  }, []);
+
+  // ...
+
+  return (
+    <LoginContext.Provider value={value}>{/** ... */}</LoginContext.Provider>
+  );
+};
+```
+
+<details>
+  <summary>이 코드는 현재 응집도가 있다고 할 수 있을까요?</summary>
+  응집도가 있습니다! 논리적으로 보았을 때, `로그인 / 인증`이라는 범주에서 묶이죠.
+
+다만 아쉬운 점이 있습니다.
+
+1. 각 동작에 관한 코드가 길어질 수록 복잡해요.
+2. 모듈 내부 간의 요소들이 서로 관련이 없이 나열되어 있어요. 따라서 모듈의 응집도를 개선할 수 있는 방향이 분명 존재해요.
+
+흠, 이를 어떻게 개선하면 좋을까요?
+
+  </details>
+
+### 1. OAuth 절차대로 일단 커스텀 훅을 만들어 묶기
+
+따라서 저는 각 OAuth 로그인 방식을 `전략`으로 보고, `react` 환경에 맞춰 전략 객체를 커스텀 훅으로 생성했어요.
+
+```tsx
+export const LoginProvider = ({ children }: React.PropsWithChildren<{}>) => {
+  /** 인증 모달1 코드*/
+  const handleOpen전역인증모달1 = () => {
+    // ...
+  };
+
+  const handleClose전역인증모달1 = () => {
+    // ...
+  };
+
+  /** 인증 모달 2 코드*/
+  const handleOpen전역인증모달2 = () => {
+    // ...
+  };
+
+  const handleClose전역인증모달2 = () => {
+    // ...
+  };
+
+  const kakaoStrategy = useKakaoLoginStrategy();
+
+  const naverStrategy = useNaverLoginStrategy();
+
+  const appleStrategy = useAppleLoginStrategy();
+
+  const onLogin = async (type: 'KAKAO' | 'NAVER' | 'APPLE') => {
+  switch (type) {
+    case 'NAVER': {
+      await naverStrategy.ready();
+      break;
+    }
+
+    case 'KAKAO': {
+      await kakaoStrategy.ready();
+      break;
+    }
+
+    case 'APPLE': {
+      await appleStrategy.ready();
+      break;
+    }
+
+    default: {
+      console.error('잘못된 형식입니다.');
+    }
+  }
+
+  // ...
+
+  return (
+    <LoginContext.Provider value={value}>{/** ... */}</LoginContext.Provider>
+  );
+```
+
+매우 많던 함수들이, 세부 범주 내로 묶였기 때문에 굉장히 가독성이 높아졌어요.
+
+다만 아직 거슬리는 부분이 있네요. 인증 모달은 크게 변경이 없는 위젯에 가까운데, 외부에서 알아야 할 필요가 있을까요? 이 역시 변경해줍시다.
+
+### 2. 구체성을 갖고 있는 외부 컴포넌트의 로직은 내부에서 핸들링하도록 하기
+
+```tsx
+export const 인증모달1 = () => {
+  /** 인증 모달1 코드*/
+  const handleOpen전역인증모달1 = () => {
+    // ...
+  };
+
+  const handleClose전역인증모달1 = () => {
+    // ...
+  };
+
+  return <Modal.Contents>{/* ... */}</Modal.Contents>;
+};
+
+export const 인증모달2 = () => {
+  /** 인증 모달1 코드*/
+  const handleOpen전역인증모달2 = () => {
+    // ...
+  };
+
+  const handleClose전역인증모달2 = () => {
+    // ...
+  };
+
+  return <Modal.Contents>{/* ... */}</Modal.Contents>;
+};
+
+export const LoginProvider = ({ children }: React.PropsWithChildren<{}>) => {
+  const kakaoStrategy = useKakaoLoginStrategy();
+
+  const naverStrategy = useNaverLoginStrategy();
+
+  const appleStrategy = useAppleLoginStrategy();
+
+  const onLogin = async (type: 'KAKAO' | 'NAVER' | 'APPLE') => {
+  switch (type) {
+    case 'NAVER': {
+      await naverStrategy.ready();
+      break;
+    }
+
+    case 'KAKAO': {
+      await kakaoStrategy.ready();
+      break;
+    }
+
+    case 'APPLE': {
+      await appleStrategy.ready();
+      break;
+    }
+
+    default: {
+      console.error('잘못된 형식입니다.');
+    }
+  }
+
+  // ...
+
+  return (
+    <LoginContext.Provider value={value}>{/** ... */}</LoginContext.Provider>
+  );
+```
+
+그렇게 길던 인증 전역 상태 객체가, 매우 간소화되었군요!
+
+실제로 리팩토링 결과, 약 600줄 이상의 코드는 현재 70줄로 유지되어 관리되고 있어요.
+
+인증 문제가 터지면 읽기 힘들어 화가 났던 전에 비해, 이제 인증 문제는 심도 있게 네트워크 및 코드를 탐구하는 즐거운 문제가 되었어요!
+
+추가로 이렇게 리팩토링을 하게 되면 어떤 이점이 있을까요? 개인적으로, 응집도를 높이는 배치는 코드의 고도화를 위한 트리거가 될 수 있다는 점에서 가장 큰 장점이 있다고 생각해요.
+
+예컨대 현재 OAuth 로직을 살펴볼까요?
+
+우선 OAuth의 경우는 일관된 웹 표준 사양에 맞춰 구현되어야 하기 때문에, 다른 방식의 OAuth더라도 대부분 비슷한 흐름의 동작을 갖고 있어요.
+
+이 말은, 즉 템플릿 메서드 패턴 등 잘 알려진 디자인 패턴 등을 통해서, 복잡한 코드의 흐름을 더욱 간결하고 해석하기 쉽게 만들 수 있다는 의미에요.
+
+> 응집도를 높이는 배치는 간단하지만 매우 강력해요.
+>
+> - 비즈니스 개발을 당장 해야 하는 사람에게는 단락을 쪼개어 전달하여 이해하기 쉽게 만들어주기 때문에 생산성이 높아요.
+> - 나아가 리팩토링을 고민하는 팀원에게는 복잡한 코드로부터 어떻게 리팩토링해야 할지 힌트를 주는, 이타적이고 생산적인 행위임을 알 수 있어요!
+
+## 논외 - 잠깐 ✋🏻 응집도란?
+
+응집도라는 말은 개발을 하면서 굉장히 많이 쓰이는 편이에요.
+
+실제로 저 역시, 코드 리뷰를 하면서, 다른 코드로 변경되었으면 좋겠다는 제안을 할 때 근거로 많이 사용하는 용어이기도 합니다.
+
+한편, 응집도는 그 자체로 굉장히 많은 코드 유형의 범주를 함축적으로 표현하기 때문에, 간혹 응집도가 있는 코드 간 리뷰를 할 때 고민이 되는 부분들이 존재해요.
+
+따라서 이 참에, 응집도의 단계를 리마인드하는 차원에서 한 번 이야기해봅니다.
+
+### 응집도의 단계
+
+#### 기능적 응집도
+
+모든 모듈 내부의 동작들이 하나의 기능 수행을 목적으로 짜여진 경우를 의미해요.
+
+```tsx
+import { NativeModules } from "react-native";
+
+import Config from "react-native-config";
+
+export class IOSKakaoChannel {
+  sdk: ReturnType<typeof NativeModules.KakaoChannelModule> | null;
+
+  constructor() {
+    this.sdk = NativeModules.KakaoChannelModule;
+  }
+
+  async init() {
+    await this.sdk.initialize(Config.KAKAO_KEY);
+  }
+
+  async show(url: string) {
+    await this.sdk.openChannel(
+      url.replace(/^(https:\/\/pf.kakao.com\/)|(\/chat*)/g, "")
+    );
+  }
+}
+```
+
+다음은, 실제로 제 회사에서 사용하고 있는 카카오 채널 관련 클래스이며, 이 객체 내부에 있는 실행 로직들은 오직 각 메서드마다 카카오 채널 관련 단일 동작에 관한 것들만 수행하고 있어요.
+
+따라서 기능적 응집도가 높다고 할 수 있어요.
+
+#### 순차적 응집도
+
+앞에서 실행된 결과가, 이어서 뒤의 실행에 영향을 줄 경우에 순차적 응집도가 높다고 할 수 있어요
+
+```tsx
+const validation = PostsMiddlewareSchema.Response.safeParse(result);
+
+if (validation.success) {
+  return res.status(200).json(validation.data);
+}
+
+const errorMesasge = new Error(validation.error.issues[0].message);
+
+// ... 에러 메시지 관련 코드
+```
+
+위 코드는 블로그에 대한 데이터를 가져오고, 해당 유효성 검사에 따라 다음 내용들을 처리하고 있어요.
+
+따라서 앞의 결과로 나온 데이터가 뒤의 코드 사용에 직접적인 영향을 주므로 순차적 응집도가 높다고 할 수 있어요.
+
+#### 통신적 응집도
+
+같은 데이터를 여러 작업에서 사용하나, 각각의 작업이 *같은 맥락*에서 동작하는 경우를 의미해요.
+
+```tsx
+const Info = (data: UserInfo) => {
+  const dsr = formatDsr(data.dsr);
+  const dti = formatDti(data.dti);
+  const creditPoint = formatCreditPoint(data.creditPoint);
+
+  return (
+    // ... 유저 정보에 관한 데이터 렌더링
+  )
+};
+```
+
+위의 각 데이터들의 포맷은 하나의 데이터를 기반으로 각각 포맷팅하고 있어요.  
+그리고 이러한 포맷팅된 데이터는 **회원 정보**라는 큰 맥락에서 특정 컴포넌트를 렌더링하는 데 사용해요.
+
+이러한 경우, 통신적 응집도가 높다고 할 수 있어요.
+
+#### 절차적 응집도
+
+관련된 기능들을 가진 요소들을 순차적으로 모듈 내에서 수행할 경우에요.
+
+다음은 약관 동의 시 특정 동작을 호출하는 예제에요.
+
+```tsx
+/** 약관 전체 동의 후 호출되는 함수 */
+const onAgreeTerm: AgreeTermHandler = (ids, state, phoneAuthRequest) => {
+  onUpdateAgree?.(ids); /** 약관 상태를 업데이트함 */
+
+  updateAuthState(state); /** 휴대전화 인증 상태를 특정 상태로 초기화함 */
+
+  requestAuthNumber(phoneAuthRequest); /** 휴대전화 인증 번호를 보냄 */
+};
+```
+
+각 모듈 내 동작 요소들은 실제로는 서로 관련이 없어요. 하지만 실제 큰 로직을 볼 때는 절차적으로 이어져야 하죠.
+
+이러한 점에서 해당 모듈은 특정 일련의 동작을 관리하기 위해 집약적으로 구성되어 있다는 점에서 절차적 응집도가 있다고 할 수 있어요.
+
+#### 일시적 응집도
+
+한 모듈 내의 코드가 관심사가 연관되지는 않지만, 특정된 시간 내에 모듈 내에서 특정 동작을 함께 수행하도록 설계된 경우에요.
+
+대개는 시작 / 종료 이벤트에서 실행하는 모듈이 이에 해당돼요.
+
+```tsx
+const redirectToDashboard =
+  (key: ValueOf<typeof ApplicationModalKeys>) => () => {
+    close(key);
+    handleChangeRoute("/consultant/dashboard");
+  };
+```
+
+위 코드는 특정 페이지로 리디렉션하는 코드에요.
+
+모달을 `close`하는 부분과 리디렉션은 관련은 없지만, 모달이 닫혔을 때에는 특정 페이지로 옮기라는 동작을 수행하고 있기 때문에 일시적 응집도가 높다고 할 수 있어요.
+
+#### 논리적 응집도
+
+대개 `switch` 문을 사용하는 곳에서 많이 보이는 응집도에요!
+
+모듈들끼리 관계가 실질적으로 밀접하지 않지만, 논리적으로는 연관되어 있어 한 모듈 내에서 수행되는 것이 이상하지 않은 케이스에요.
+
+```tsx
+const onLogin = async (type: "KAKAO" | "NAVER" | "APPLE") => {
+  updateOAuthType(type);
+
+  switch (OAuthType) {
+    case "NAVER": {
+      await naverStrategy.ready();
+    }
+
+    case "KAKAO": {
+      await kakaoStrategy.ready();
+      break;
+    }
+
+    case "APPLE": {
+      await appleStrategy.ready();
+      break;
+    }
+
+    default: {
+      console.error("잘못된 형식입니다.");
+    }
+  }
+};
+```
+
+#### 우연적 응집도
+
+관계가 없는 요소들이 모여 모듈을 구성하는 경우에요.
+
+대개 `응집도가 낮다고 표현`되는 코드들이며, 요소 관의 연관성을 찾아볼 수 없지만, 함께 실행되도록 설계된 케이스에요.
+
+## 발제 - 결합도, 어느정도에서 관리가 필요할까요?
+
+책에서 이야기가 되어 있듯, 결합도를 제거하는 비용이 비싸면 나중에 미루라고 기술되어 있어요.
+
+다만, `미룬다`라는 비용의 관점이 과연 어느 때 그 가치 판단이 역전이 될지 가늠이 되지 않아요 😭
+
+또한, 결합도를 낮추는 행위는 매우 겁이 나기도 해요.
+
+코드가 순수해지는 장점은 있지만, 외부 의존성을 덜어낸 만큼 더 많은 인자를 불러내야 하고, 그렇다 보면 개발의 비용이 비싸지는 건 마찬가지니까요.
+
+여러분께서는 어떠한 코드를 볼 때 `이 코드는 결합도가 높은 것 같아요. 낮춰보는 게 어때요?`라고 말씀하실 것 같나요? 혹시 이러한 사례가 있었다면 서로 공유해보는 시간을 가져보면 좋을 것 같아요!

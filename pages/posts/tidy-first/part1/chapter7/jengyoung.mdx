@@ -1,0 +1,112 @@
+# 선언과 초기화를 함께 옮기기
+
+## 요약
+
+- 변수 선언과 초기화 위치를 서로 최대한 가까이 하는 것이 좋아요.
+- 무작정 선언과 초기화를 최대한 가까이 적용하기보다는, 부담을 느끼지 않는 선에서 위치를 조금씩 변경하는 것이 좋아요.
+
+## 예제
+
+### 스태틱 메서드를 통해 생성했는데, 왜 인스턴스 생성이 되지 않을까?!
+
+어떤 이야기를 하면 좋을까 고민했는데요!
+
+마침 이번에 사내에서 API 리팩토링을 하며 겪은 이야기가 맞겠다 싶어 들고 와봤어요.
+
+다음은 API fetching을 관장하는, axios를 사용하던 이전의 코드에요.
+
+```ts
+import axios from 'axios'
+
+axios.store_data = {
+  ...
+} // axios 라이브러리 몽키패칭
+
+// ...
+```
+
+이전의 코드에서는 위와 같이 라이브러리에서 임의로 객체를 생성하여, 특정 토큰들을 저장하는 용도로 사용하고 있었어요.  
+이러한 코드로 인해 이전의 소스코드는 타입스크립트로 마이그레이션하기 껄끄러웠고, 따라서 유지보수하기 힘들었는데요.
+
+따라서 저는 이러한 토큰 데이터들을 관리하는 스토어를 생성하기로 마음 먹었어요.
+
+```ts
+// 인스턴스를 선언해줬어요.
+export class TokenStore {
+  _data: Token | null = null;
+
+  static instance?: TokenStore = undefined;
+
+  static EMPTY_DATA: Partial<Token> = {};
+
+  static getInstance(): TokenStore {
+    if (!TokenStore.instance) {
+      // 여기서 인스턴스를 초기화합니다.
+      TokenStore.instance = new TokenStore();
+    }
+
+    return TokenStore.instance;
+  }
+
+  constructor() {
+    // ...
+  }
+
+  getData(): Token | null {
+    return this._data;
+  }
+
+  setData(data: Token) {
+    this._data = data;
+  }
+
+  initialize() {
+    this._data = null;
+  }
+}
+```
+
+이 스토어는 언제 생성하던지, 항상 하나의 인스턴스에서 관리되고 유지해야 했어요. 따라서 싱글톤으로 구현했어요.
+
+이후, 이를 fetcher의 interceptor에서 사용하였어요.
+
+```ts
+import { TokenStore } from "...";
+
+const tokenStore = TokenStore.getInstance();
+
+// ... 인터셉터 로직
+```
+
+간단하죠?
+
+그리고 실제로 동작을 시켰더니! 에러가 갑자기 떡하니 나옵니다.
+
+> TokenStore에는 getInstance가 없습니다.
+
+디버깅 결과, 자바스크립트 클래스에서 모듈로 호출할 때에는, `TokenStore.getInstance`를 호출하는 시점에서 `TokenStore`은 `static` 메서드를 갖지 않습니다! (이유는 계속해서 찾아보려 합니다 🙇🏻‍♂️)
+
+이러한 문제를 겪고 난 이후, 저는 결국 클래스를 선언한 아래에서 인스턴스를 생성하고, 해당 인스턴스를 공유하면서 사용하기로 했어요.
+
+```ts
+// Store 설정 모듈
+class TokenStore {
+  ...
+}
+
+export const tokenStore = new TokenStore.getInstance();
+
+
+// interceptor 설정 모듈
+import { tokenStore } from '...'
+
+// ...
+```
+
+이러한 이유가 발생한 이유는 무엇일까요? 바로 정적 프로퍼티를 초기화하는 코드가, 외부 모듈에서 의존하고 있기 때문에 발생한 것이었어요.
+
+결국 코드 가까운 곳에서 초기화하고, 이를 사용하면 발생하지 않을 문제에요.
+
+하지만 여러 외부 모듈에서 import하면서 재사용했기 때문에 디버깅은 더욱 난해했고, 따라서 간단한 문제를 약 1시간 들여 해결했던 경험이었어요.
+
+따라서, 이번 스프린트가 끝나면 해당 인스턴스 초기화 메서드를 제거하고, 인스턴스를 쉽게 핸들링할 수 있도록 리팩토링할 계획이에요!

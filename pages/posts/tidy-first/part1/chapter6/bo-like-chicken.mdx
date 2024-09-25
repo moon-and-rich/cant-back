@@ -133,30 +133,6 @@ export function updateUser(userId, data) {
 }
 ```
 
-- 컴포넌트에서는 `userApi` 모듈만 사용하여 API를 호출합니다.
-
-**컴포넌트 코드:**
-
-```tsx
-// components/UserProfile
-import React, { useEffect, useState } from "react";
-import { fetchUser } from "../api/userApi";
-
-function UserProfile({ userId }) {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    fetchUser(userId).then((response) => {
-      setUser(response.data);
-    });
-  }, [userId]);
-
-  return user ? <div>{user.name}</div> : <div>Loading...</div>;
-}
-
-export default UserProfile;
-```
-
 - API 변경 시 `userApi`만 수정하면 되므로 유지보수가 용이합니다.
 
 ## 결합도 제거를 위한 노력

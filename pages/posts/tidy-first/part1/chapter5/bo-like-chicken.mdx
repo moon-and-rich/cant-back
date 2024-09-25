@@ -1,1 +1,98 @@
-# hi
+# 읽는 순서
+
+## 읽기 좋은 순서로 다시 정렬하기
+
+코드를 작성할 때 **읽기 좋은 순서로 정렬**하면, 코드를 읽는 사람이 논리적인 흐름에 따라 쉽게 이해할 수 있습니다.
+
+- **읽기 좋은 순서로 정렬하는 것과 세부 구현을 정리하는 것이 혼용되어서는 안 됩니다.** 코드를 정렬하면서 함수의 동작이나 구현을 변경하지 않아야 합니다.
+- **순서를 정렬하며 함수의 동작이 바뀌어서는 안 됩니다.** 코드의 기능은 그대로 유지하면서 순서만 변경해야 합니다.
+
+## 예시
+
+차례대로 **이름**, **이메일**, **주소**에 대한 정보를 수집하는 `form`이 있고, 각 필드에 대한 유효성 검사를 해야 한다면, **보기 좋게 순서를 맞춰 정리**해주면 좋습니다.
+
+### 순서가 맞지 않는 코드
+
+```typescript
+const isEmailValid = validateEmail(email);
+const isAddressValid = validateAddress(address);
+const isNameValid = validateName(name);
+
+// 유효성 검사 로직
+if (isEmailValid) {
+  console.log("이메일이 유효합니다.");
+}
+
+if (isAddressValid) {
+  console.log("주소가 유효합니다.");
+}
+
+if (isNameValid) {
+  console.log("이름이 유효합니다.");
+}
+```
+
+**문제점:**
+
+- 폼에서 입력받는 순서는 **이름 → 이메일 → 주소**이지만, 유효성 검사 순서는 **이메일 → 주소 → 이름**입니다.
+- 코드를 읽는 사람이 입력 순서와 코드의 순서가 달라 혼란스러울 수 있습니다.
+
+### 순서를 맞춘 코드
+
+```typescript
+const isNameValid = validateName(name);
+const isEmailValid = validateEmail(email);
+const isAddressValid = validateAddress(address);
+
+// 유효성 검사 로직
+if (isNameValid) {
+  console.log("이름이 유효합니다.");
+}
+
+if (isEmailValid) {
+  console.log("이메일이 유효합니다.");
+}
+
+if (isAddressValid) {
+  console.log("주소가 유효합니다.");
+}
+```
+
+**개선점:**
+
+- **입력 순서와 코드의 순서**를 일치시켰습니다.
+- 이름, 이메일, 주소의 순서대로 유효성 검사를 수행하여 **코드의 가독성**을 높였습니다.
+- 동작은 그대로 유지하면서 **코드의 흐름**을 명확하게 만들었습니다.
+
+### 추가 예시: 함수 정의 순서 맞추기
+
+만약 각 필드에 대한 유효성 검사 함수를 정의한다면, 그 순서도 입력 순서에 맞추면 좋습니다.
+
+```typescript
+function validateName(name: string): boolean {
+  // 이름 유효성 검사 로직
+  return name.length > 0;
+}
+
+function validateEmail(email: string): boolean {
+  // 이메일 유효성 검사 로직
+  const emailRegex = /\S+@\S+\.\S+/;
+  return emailRegex.test(email);
+}
+
+function validateAddress(address: string): boolean {
+  // 주소 유효성 검사 로직
+  return address.length > 5;
+}
+```
+
+**장점:**
+
+- 함수 정의 순서도 입력 순서와 일치하여 **코드 전체의 일관성**이 유지됩니다.
+- 코드를 읽는 사람이 자연스럽게 흐름을 따라갈 수 있습니다.
+
+## 결론
+
+- **코드의 순서를 논리적인 흐름에 맞게 정렬**하면 가독성이 향상됩니다.
+- 특히 **입력 순서**, **처리 순서** 등에 맞춰 코드를 작성하면 **유지보수성**이 높아집니다.
+- 코드를 정렬할 때는 **함수의 동작을 변경하지 않도록 주의**해야 합니다.

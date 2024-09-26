@@ -14,117 +14,165 @@
 
 ## 예제
 
-### 포맷팅 함수 공통화하기
+### 커스텀 모달 props 리팩토링하기
 
-현재 사내에서는 꽤나 많은 포맷팅 함수들이 있어요.  
-이 함수들은 결과적으로 특정 값들을 포맷팅하여, 다른 값으로 변환하는 역할들을 하죠.
+현재 ~~어느 프로젝트~~에는 다음과 같이 커스텀 모달을 사용하고 있어요.
 
-예컨대 다음과 같아요.
+```tsx
+export function Custom({
+  id,
+  className,
+  visible,
 
-```ts
-formatMoney(10_000, "원"); // 10,000원
-formatTanentDeposit(0, "세입자 보증금 없음"); // 세입자보증금 없음
-formatDsr({
-  dsr: 0.25,
-  prefix: "DSR",
-  isSpaceAfterPrefix: true,
-}); // DSR 0.25
+  width,
+  minWidth,
+  maxWidth,
+  height,
+  minHeight,
+  maxHeight,
+  padding,
+  borderRadius,
+
+  maskClosable = false,
+  onAfterOpen,
+  onClose,
+
+  closeButton,
+
+  children,
+}: TCustomModalProps) {
+  const { ref, portalTarget } = useDialog({
+    visible,
+    onAfterOpen,
+    onClose,
+    maskClosable,
+  });
+
+  return (
+    <ModalBackground visible={visible} portalTarget={portalTarget}>
+      <CustomModalWithMotion
+        id={id}
+        className={className}
+        ref={ref}
+        key={visible ? "modal--open" : "modal--close"}
+        visible={visible}
+        width={width}
+        minWidth={minWidth}
+        maxWidth={maxWidth}
+        height={height}
+        minHeight={minHeight}
+        maxHeight={maxHeight}
+        padding={padding}
+        borderRadius={borderRadius}
+        onClose={onClose}
+        closeButton={closeButton}
+        // animation
+        initial={modalAnimation.initial}
+        animate={modalAnimation.animate}
+        exit={modalAnimation.exit}
+        transition={modalAnimation.transition}
+      >
+        {children}
+      </CustomModalWithMotion>
+    </ModalBackground>
+  );
+}
 ```
 
-이러한 코드는 얼핏 문제점이 없어 보여요.  
-하지만 장기적으로 생각한다면? 다음과 같은 문제점을 야기할 수 있죠.
+이때, 팀원 간에서 다음과 같은 논의가 진행되었다고 가정할게요.
 
-#### 문제 1. 포맷팅에 대한 인터페이스가 일정하지 않아요.
+- 🚨 관심사 별로 묶었으면 좋겠어요!
+  - 현재 N개의 스타일이 추가될 때마다 N개의 props를 만들어주고, 관리해줘야 해요. 따라서 이를 하나의 스타일 객체에서 관리했으면 좋겠다는 생각이 들었어요.
+  - 애니메이션 객체도 문제가 있겠어요. 왜냐! 추후에 애니메이션을 위에서부터 전달받는다면, transition이라는 속성은 스타일에도 존재하기 때문이죠!
+- 커스터마이징이 한정적이에요!
+  - 특정 서비스에서는 모달 위쪽으로 무언가를 넣고 싶다고 하면 이를 대응하기가 점차 어려워져요.
+  - 유연하게 컴포넌트를 가져가되, 구체화된 컴포넌트를 직접 아토믹하게 만들어가고 싶어요!
 
-코드를 사용하는 작업자 입장에서는 어떨까요?  
-물론 코드는 짜여져 있으니, 함수가 어떤 식으로 구현되었는지 들어가서 확인해야 해요.
+## 해결 1. 일단 인터페이스를 별도로 만들어내자
 
-이는 문제가 되지 않지만, 이 장에서의 이야기를 인용하자면 다음과 같은 우려는 있을 것 같아요.
+갑자기 리팩토링하기에는, 모달은 생각보다 사용범위가 굉장히 많기 때문에 섣불리 전면교체하기 어려워요.
 
-> 두 가지 이상의 패턴을 섞어 쓰면 혼란스러워집니다.
-> 코드를 읽을 때 기존과 다르다면 '다른 동작의 코드겠지'라고 예단하겠죠.
-> 여기서 차이가 있다 보니, 같은 일임에도 다른 일인 것처럼 뜻이 흐려집니다.
+이럴 때에는, 책처럼 거꾸로 먼저 생각해보는 게 필요해요. **결과는 어떻게 나올 것이다!**를 미리 정하고 코딩하는 거죠.
 
-위의 3가지 함수를 보고, 만약 30가지가 생긴다면 어떻게 될까요?  
-과연 우리는, 나머지 27개의 사용 방식을 확신하고, 예측할 수 있을까요?  
-다른 사람들이면 몰라도, 저는 코드를 의심해서 들여다보고, 서로 다른 코드 패턴에 혼란스러울 것 같아요 😭
+저는 별도의 기능 추가를 바란 건 아니니, 결국 결과 코드는 이전의 코드겠지요?
 
-#### 문제 2. 어떤 방식으로 포맷팅 함수를 계속해서 짜야될지 고민이에요.
+따라서, 먼저 다음과 같이 커스텀 모달을 리팩토링했어요.
 
-현재 코드를 생성하는 작업자 입장에서는 어떨까요?  
-일단, 포맷팅에 대한 함수를 어떻게 짜야 타 작업자들이 편할지 고민하는 시간이 길어져요.
+```tsx
+export function PassThroughCustom({
+  id,
+  className,
+  visible,
 
-결국 이러한 피로도가 쌓이면 어떻게 된다면, 작업자들은 더이상 유틸함수를 쪼개고 싶지 않아요.  
-왜냐하면, 함수를 쪼개고, 인터페이스를 고민하고 재사용하는 비용이, 그냥 코드를 복사하는 비용보다 크기 때문이죠.
+  maskClosable = false,
 
-#### 포맷팅 함수 공통화
+  onAfterOpen,
 
-우선적으로 위의 코드 중 `formatDsr`을 살펴볼까요?
+  onClose,
 
-```ts
-export const formatDsr = ({
-  dsr,
-  prefix,
-  isSpaceAfterPrefix,
-}: {
-  dsr: number | null;
-  prefix?: string;
-  isSpaceAfterPrefix?: boolean;
-  defaultValue?: string;
-}): `${string}%` | "-" => {
-  if (!dsr) {
-    return "-";
-  }
+  style,
 
-  return `${prefix ?? ""}${isSpaceAfterPrefix ? " " : ""}${dsr.toFixed(1)}%`;
-};
+  animation,
+
+  closeButton,
+
+  children,
+}: TCustomModalProps) {
+  const { ref, portalTarget } = useDialog({
+    visible,
+    onAfterOpen,
+    onClose,
+    maskClosable,
+  });
+
+  const { initial, animate, exit, transition } = animation;
+
+  const {
+    width,
+    minWidth,
+    maxWidth,
+    height,
+    minHeight,
+    maxHeight,
+    padding,
+    borderRadius,
+  } = style;
+
+  return (
+    <ModalBackground visible={visible} portalTarget={portalTarget}>
+      <CustomModalWithMotion
+        CustomModalWithMotionid={id}
+        className={className}
+        ref={ref}
+        key={visible ? "modal--open" : "modal--close"}
+        visible={visible}
+        width={width}
+        minWidth={minWidth}
+        maxWidth={maxWidth}
+        height={height}
+        minHeight={minHeight}
+        maxHeight={maxHeight}
+        padding={padding}
+        borderRadius={borderRadius}
+        onClose={onClose}
+        closeButton={closeButton}
+        // animation
+        initial={modalAnimation.initial}
+        animate={modalAnimation.animate}
+        exit={modalAnimation.exit}
+        transition={modalAnimation.transition}
+      >
+        {children}
+      </CustomModalWithMotion>
+    </ModalBackground>
+  );
+}
 ```
 
-코드가 주어졌으니, 한 번 이 책의 권장하는 방식대로 거꾸로 코딩해볼까요?
+어떠한 기능도 바꾸지 않고, 인터페이스를 쉽게 바꿀 수 있었군요!
 
-결과 코드는 문자열이고, 문자열에 필요한 조건은 다음과 같아요.
+이후에는 점차, 위처럼 점진적으로 기능들의 변경 없이도 다양하게 커스터마이징할 수 있겠어요.
 
-- 대상이 되는 값이 들어간다.
-- 값에 대한 필터링을 진행한다.
-- 다른 문자를 넣어줄 수 있게끔 한다.
+예컨대, 배경의 변경 없던지, 혹은 배경 쪽에서 특정 컴포넌트가 나와야 한다던지 말이죠!
 
-따라서, 생성 로직을 다음과 같이 루틴을 생성하여, 공통의 인터페이스를 따르는 루틴을 만들면 어떨까요?  
-다음과 같이 말이죠.
-
-```ts
-import { Brand, BRAND } from "../constants";
-
-export type Formatter = <T>(
-  target?: T
-  option: {
-	  to: `${string}${Brand}${string}`,
-	  filter?: (arg: T) => string
-  }
-) => string;
-
-export const format: Formatter = (inputString, { to, filter }) => {
-  if (!inputString) {
-    throw new Error("format: 바뀔 문자를 정의해주세요.");
-  }
-
-  const str = filter ? filter(str) : inputString
-
-  return formattedText.replace(new RegExp(BRAND, "g"), str);
-};
-
-format.brand = BRAND;
-
-// 사용
-format(money, { to: `${format.BRAND}원`, filter: filterCommaNumber })
-format(deposit, { to: deposit ? `${format.BRAND}원` : '세입자 보증금 없음' }); // 세입자보증금 없음
-format(dsr, { to: `DSR ${format.BRAND}` })
-```
-
-이렇게 유틸 생성 루틴을 함수화한다면, 어떤 효과가 있을까요? 적어도 다음과 같은 효과가 있을 것 같아요.
-
-1. 포맷팅 함수의 생성 로직을 일관성 있게 유지할 수 있어요.
-2. 필터링 동작과 포맷팅 동작을 구분하여 함수를 만들게끔 강제함으로써 더욱 응집도 높은 코드를 만들 수 있어요.
-
-따라서, 현재는 해당 인터페이스를 구현만 하고, 사내 아이디어를 제시한 상태에요.  
-이러한 인터페이스를 당장 강제하지 않아도 괜찮아요.  
-결국, 통로 인터페이스만 만들어낸다면 편한 인터페이스는 계속해서 쓰게 되어있고, 레거시 코드들은 우리가 편한 함수로 서서히 리팩토링할테니까요.
+결국 기존의 로직을 유지하면서도, 안정적으로 기능을 확장시킬 수 있다는 측면에서 통로 인터페이스를 활용하면 좋은 것 같아요.

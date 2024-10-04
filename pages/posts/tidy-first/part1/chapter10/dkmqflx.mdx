@@ -1,0 +1,59 @@
+## 10. 명시적인 매개변수
+
+- 타입스크립트에서 필요한 매개변수만 전달받도록 타입을 지정한다
+
+```jsx
+function foo(text:string, num:number){
+	...
+}
+
+foo('aa', 1)
+foo('aa') // error
+```
+
+- 좁은 타입이 전달되는 경우에는 에러 발생한다.
+
+```jsx
+type Person = {
+  name: string,
+  age: number,
+};
+
+type PersonWithoutAge = {
+  name: string,
+};
+
+function greet(person: Person) {
+  console.log(`Hello, ${person.name}. You are ${person.age} years old.`);
+}
+
+const person1 = { name: "Alice", age: 25 };
+const person2 = { name: "Bob" };
+
+greet(person1); // O
+greet(person2); // X
+```
+
+- 넓은 타입이 전달되는 경우 별도의 에러는 발생하지 않지만, 함수의 파라미터에 정의된 타입을 통해 사용되는 매개변수를 추론할 수 있다.
+
+```jsx
+type Person = {
+  name: string,
+  age: number,
+};
+
+type PersonWithoutId = {
+  name: string,
+  age: number,
+  id: number,
+};
+function greet(person: Person) {
+  console.log(`Hello, ${person.name}. You are ${person.age} years old.`);
+}
+
+const person1: Person = { name: "Alice", age: 25 };
+const person2: PersonWithoutId = { name: "Bob", age: 30, id: 3 };
+
+greet(person1); // Hello, Alice. You are 25 years old.
+greet(person2); // Hello, Bob. You are 30 years old.
+```

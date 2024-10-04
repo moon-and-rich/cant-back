@@ -1,0 +1,33 @@
+## 09. 설명하는 상수
+
+> 상징적인 상수를 만드세요. 리터럴 상수로 사용된 곳은 상징적인 상수로 바꿉니다.
+
+- HTTP Status Code를 상수로 관리하기
+
+  - [토스페이먼츠 API 에러코드](https://docs.tosspayments.com/reference/error-codes#%EC%BD%94%EC%96%B4-api-%EB%B3%84-%EC%97%90%EB%9F%AC)
+
+  ```jsx
+  const ALREADY_PROCESSED_PAYMENT = 400;
+
+  const PROVIDER_ERROR = 400;
+
+  const INVALID_PASSWORD = 403;
+  ```
+
+- z-index 값을 매직넘버 대신 객체로 관리하기
+
+  ```jsx
+  // as-is
+
+  // to-be
+
+  const zIndex ={
+  	base:0
+  	above: 100
+  	below: -100
+
+  	header: 1000
+  	footer:
+  	modal: 3000
+  }
+  ```

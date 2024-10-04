@@ -1,0 +1,40 @@
+# CHAPTER 04. 새로운 인터페이스로 기존 루틴 부르기
+
+> 루틴을 호출해야 하는데 기존 인터페이스 때문에 어렵거나, 복잡하거나, 혼란스럽거나, 지루해지곤 합니다. 이 모든 경우에 호출하고 싶은 인터페이스를 새롭게 구현해서 호출하세요.
+
+> 새로 만든 인터페이스는 그저 기존 인터페이스를 호출하는 것으로 구현할 수 있습니다.
+
+- 기존 코드가 너무 지저분하다면 새로운 인터페이스를 만든다
+
+```jsx
+// 기존에 사용하던 레거시한 컴포넌트
+// 자바스크립트로 작성되어 있기 때문에 props의 타입을 추론하기 힘들다.
+// 따라서 컴포넌트에 모든 props를 전달한다
+
+<LegacyComponent
+  props1={props1}
+  props2={props2}
+  props3={props3}
+  props4={props4}
+  props5={props5}
+  props6={props6}
+  props7={props7}
+  props8={props8}
+/>;
+
+// 타입스크립트로 작성된 컴포넌트를 하나 더 만들어서 래핑한다
+// 필요한 props만 전달되도록 한다.
+
+function TypedComponent({
+  props3,
+  props4,
+}: {
+  props3: string,
+  props4: number,
+}) {
+  return;
+  <LegacyComponent props3={props3} props4={props4} />;
+}
+```
+
+- 이런 식으로 컴포넌트를 사용할 때 마다 필요한 props만 전달받는 통로 인터페이스 역할을 하는 컴포넌트를 정의해주면 추후에 더 쉽게 리팩토링 할 수 있다.

@@ -1,0 +1,209 @@
+# 도우미 추출
+
+## 목적이 분명하고 다른 코드와 상호작용이 적은 코드 블록을 도우미 함수로 추출합니다. 도우미 함수의 이름은 작동 방식이 아니라 **목적**에 따라 짓는 것이 핵심입니다.
+
+리팩터링을 알고 있다면 이 방법이 ‘메서드 추출’과 유사하다는 것을 알 수 있습니다. 이 작업은 코드를 더 이해하기 쉽게 만들고, 변경에 유연한 설계를 가능하게 합니다. 코드를 정리하고 리팩터링할 때 자동화 도구를 활용하는 것이 효율적입니다.
+
+### 특수한 경우 1: 일부 코드를 변경할 때
+
+리액트 컴포넌트의 함수 내에 특정 동작이 반복되거나 변경이 필요한 경우, 해당 코드를 도우미 함수로 추출하여 관리할 수 있습니다.
+
+#### AS-IS
+
+```tsx
+import { useState } from "react";
+
+function OrderForm() {
+  const [order, setOrder] = useState({ item: "", quantity: 0 });
+
+  const handleSubmit = () => {
+    // 유효성 검사
+    if (order.item.trim() === "" || order.quantity <= 0) {
+      console.log("Invalid order details");
+      return;
+    }
+
+    // 주문 로직 처리
+    console.log("Processing order:", order);
+
+    // 초기화
+    setOrder({ item: "", quantity: 0 });
+  };
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={order.item}
+        onChange={(e) => setOrder({ ...order, item: e.target.value })}
+      />
+      <input
+        type="number"
+        value={order.quantity}
+        onChange={(e) =>
+          setOrder({ ...order, quantity: Number(e.target.value) })
+        }
+      />
+      <button onClick={handleSubmit}>Submit Order</button>
+    </div>
+  );
+}
+```
+
+위 코드에서 `handleSubmit` 함수는 유효성 검사, 주문 처리, 초기화를 모두 수행하고 있어 함수가 길고 복잡합니다.
+
+#### TO-BE
+
+```tsx
+import { useState } from "react";
+
+function OrderForm() {
+  const [order, setOrder] = useState({ item: "", quantity: 0 });
+
+  const isOrderValid = () => {
+    return order.item.trim() !== "" && order.quantity > 0;
+  };
+
+  const resetOrder = () => {
+    setOrder({ item: "", quantity: 0 });
+  };
+
+  const handleSubmit = () => {
+    // 유효성 검사
+    if (!isOrderValid()) {
+      console.log("Invalid order details");
+      return;
+    }
+
+    // 주문 로직 처리
+    console.log("Processing order:", order);
+
+    // 초기화
+    resetOrder();
+  };
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={order.item}
+        onChange={(e) => setOrder({ ...order, item: e.target.value })}
+      />
+      <input
+        type="number"
+        value={order.quantity}
+        onChange={(e) =>
+          setOrder({ ...order, quantity: Number(e.target.value) })
+        }
+      />
+      <button onClick={handleSubmit}>Submit Order</button>
+    </div>
+  );
+}
+```
+
+### 변경으로 인한 개선점
+
+#### 가독성 향상:
+
+- **분리된 함수:** `isOrderValid`와 `resetOrder` 함수를 추출하여, `handleSubmit` 함수가 짧아지고 각 함수의 목적이 명확해졌습니다.
+
+#### 유지보수성:
+
+- **부분 변경 용이:** 유효성 검사 로직이나 초기화 로직을 변경해야 할 때 각각의 도우미 함수만 수정하면 되므로 유지보수가 쉬워집니다.
+
+## 특수한 경우 2: 시간적 결합을 표현할 때
+
+특정 순서대로 실행되어야 하는 코드를 도우미 함수로 추출하여 순서의 의도를 명확하게 표현할 수 있습니다.
+
+#### AS-IS
+
+```tsx
+import { useEffect, useState } from "react";
+
+function DataFetcher() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+
+    // Cleanup
+    return () => {
+      clearData();
+    };
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    const response = await fetch("/api/data");
+    const result = await response.json();
+    setData(result);
+    setLoading(false);
+  };
+
+  const clearData = () => {
+    setData(null);
+    setLoading(true);
+  };
+
+  return <div>{loading ? "Loading..." : JSON.stringify(data)}</div>;
+}
+```
+
+이 코드는 `fetchData`가 먼저 호출된 후, 언마운트될 때 `clearData`가 호출되어야 하는 시간적 결합을 가지고 있습니다.
+
+#### TO-BE
+
+```tsx
+import { useEffect, useState } from "react";
+
+function DataFetcher() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAndSetData();
+
+    return () => {
+      resetData();
+    };
+  }, []);
+
+  const fetchAndSetData = async () => {
+    setLoading(true);
+    const result = await fetchData();
+    setData(result);
+    setLoading(false);
+  };
+
+  const fetchData = async () => {
+    const response = await fetch("/api/data");
+    return await response.json();
+  };
+
+  const resetData = () => {
+    setData(null);
+    setLoading(true);
+  };
+
+  return <div>{loading ? "Loading..." : JSON.stringify(data)}</div>;
+}
+```
+
+### 변경으로 인한 개선점
+
+#### 가독성 향상:
+
+- **시간적 결합 표현:** `fetchAndSetData` 함수로 추출하여, 데이터 가져오기와 로딩 상태 설정이 함께 수행되어야 한다는 의도를 명확하게 드러냈습니다.
+
+#### 재사용성:
+
+- **도우미 함수의 활용:** `fetchData`와 `resetData`를 도우미 함수로 추출하여, 데이터 요청이나 초기화 로직을 다른 곳에서도 활용할 수 있게 했습니다.
+
+## 정리
+
+- 도우미 함수는 목적이 분명하고 다른 코드와 상호작용이 적은 코드 블록을 추출할 때 사용합니다.
+- **가독성 향상:** 도우미 함수의 이름은 그 목적에 맞게 지어져야 하며, 이를 통해 코드의 의도를 명확히 전달할 수 있습니다.
+- **유지보수성:** 도우미 함수를 통해 코드의 일부분을 변경하거나 개선할 때 간편해집니다.
+- **시간적 결합 표현:** 특정 순서로 실행되어야 하는 코드를 도우미 함수로 추출하여 순서 의도를 명확하게 드러낼 수 있습니다.

@@ -1,1 +1,111 @@
-# hi
+# 명시적인 매개변수
+
+## 코드에서 필요한 데이터를 명시적으로 전달하는 것이 중요합니다.
+
+### 사례
+
+코드에 암묵적으로 전달되는 데이터가 명시적으로 전달되지 않으면 코드의 의도를 파악하기 어렵고, 데이터 사용을 추적하기도 힘듭니다. 이를 방지하기 위해 루틴을 분리하고 필요한 데이터를 명시적으로 전달하는 것이 좋습니다.
+
+#### AS-IS
+
+```ts
+const params = { a: 1, b: 2 };
+foo(params);
+
+function foo(params) {
+  // 내부에서 params.a와 params.b를 사용
+  console.log(params.a, params.b);
+}
+```
+
+이 코드는 `foo` 함수가 `params` 객체에 포함된 `a`와 `b`를 사용하는 것처럼 보이지만, `params`에 어떤 데이터가 필요한지 함수 시그니처만 보고는 알 수 없습니다.
+
+#### TO-BE
+
+```ts
+const params = { a: 1, b: 2 };
+foo(params.a, params.b);
+
+function foo(a: number, b: number) {
+  console.log(a, b);
+}
+```
+
+### 변경으로 인한 개선점
+
+#### 가독성 향상:
+
+매개변수 `a`와 `b`를 함수에 명시적으로 전달하여, `foo` 함수가 어떤 데이터를 사용해야 하는지 명확하게 알 수 있습니다. 이는 코드를 읽는 사람에게 필요한 정보와 그 의도를 쉽게 전달합니다.
+
+#### 유지보수성:
+
+함수가 필요로 하는 매개변수가 명시적으로 드러나므로, 코드의 변경이 더 간단해집니다. 예를 들어, `foo` 함수가 더 많은 매개변수를 필요로 하게 되면 함수의 시그니처만 수정하면 됩니다.
+
+#### 의미 전달:
+
+매개변수 이름을 명확히 함으로써, 해당 매개변수가 어떤 역할을 하는지 쉽게 파악할 수 있습니다.
+
+## 코드를 분리하여 함수의 매개변수를 명시적으로 정리하면 코드 가독성이 향상되고 유지보수가 쉬워집니다.
+
+### 중괄호로 둘러싸인 데이터의 명시화 및 커링
+
+중괄호로 둘러싸인 코드에서 환경 변수를 사용하는 경우, 명시적인 매개변수 정리뿐만 아니라 커링을 통해 연쇄적으로 함수를 호출할 수 있게 만들면 테스트와 분석이 쉬워집니다.
+
+#### AS-IS
+
+```ts
+function doSomething() {
+  const environment = { apiUrl: "https://api.example.com", token: "12345" };
+  makeRequest(environment);
+}
+
+function makeRequest(environment) {
+  fetch(environment.apiUrl, {
+    headers: {
+      Authorization: `Bearer ${environment.token}`,
+    },
+  });
+}
+```
+
+#### TO-BE (커링 적용)
+
+```ts
+function makeRequest(apiUrl: string) {
+  return (token: string) => {
+    fetch(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  };
+}
+
+function doSomething() {
+  const apiUrl = "https://api.example.com";
+  const token = "12345";
+
+  const requestWithToken = makeRequest(apiUrl)(token);
+}
+```
+
+### 개선점
+
+#### 가독성 향상:
+
+커링을 통해 `makeRequest` 함수가 부분적으로 매개변수를 받도록 만들었기 때문에, 함수를 분할하여 코드의 의도를 더 명확하게 표현할 수 있습니다.
+
+#### 유지보수성:
+
+API URL이나 토큰이 변경되어야 할 때 커링된 함수를 재사용하거나 새로운 매개변수를 전달할 수 있어 코드의 유연성이 높아집니다.
+
+#### 연쇄 호출 및 테스트 용이성:
+
+커링된 함수는 각 단계마다 필요한 매개변수를 명시적으로 전달받아 연쇄적으로 호출할 수 있게 합니다. 이를 통해 함수의 조합과 테스트가 쉬워집니다.
+
+## 정리
+
+- 필요한 데이터를 명시적으로 전달하는 것이 중요하며, 커링을 통해 함수를 연쇄적으로 호출할 수 있게 만들어야 합니다.
+- 커링을 적용하여 코드의 가독성, 유지보수성, 그리고 함수의 테스트 및 재사용성을 향상시킬 수 있습니다.
+
+> 사실 타스에서는 객체로 받고 구조분해할당으로 사용하기 때문에 크게 공감가지는 않았던 대목

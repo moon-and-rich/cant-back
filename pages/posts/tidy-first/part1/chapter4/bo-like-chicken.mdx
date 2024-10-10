@@ -1,1 +1,153 @@
-# hi
+# 새로운 인터페이스로 기존 루틴 호출하기
+
+## 통로 인터페이스란?
+
+**통로 인터페이스(Pass-through Interface)** 는 기존의 복잡하거나 사용하기 어려운 인터페이스를 감싸서 더 간단하고 명확한 인터페이스로 대체하기 위해 생성하는 중간 인터페이스입니다. 새로운 인터페이스는 내부적으로 기존 인터페이스를 호출하지만, 외부에서는 일관되고 간단한 방식으로 사용할 수 있게 해줍니다.
+
+## 통로 인터페이스와 유사한 접근 방식
+
+통로 인터페이스를 사용하는 것과 비슷하게, **코드를 작성할 때 미리 인터페이스나 구조를 설계하면 변경이 더 쉬워지는** 경우가 많습니다. 특히 공통 컴퍼넌트를 제작할 때 세부 구현보다는 **`props`를 어떻게 받아올지부터 설계**하면 유용한 경우가 있습니다.
+
+이러한 접근 방식에는 다음과 같은 방법이 포함됩니다.
+
+- **거꾸로 코딩하기**: 루틴의 **마지막 줄부터 시작**하여 필요한 결과를 정의하고, 그 결과를 얻기 위한 코드를 작성합니다.
+- **테스트 우선 코딩**: **TDD(Test-Driven Development)**를 통해 테스트 코드를 먼저 작성하여 함수나 모듈이 충족해야 할 조건을 정의합니다.
+- **도우미 설계**: 미리 **helper 함수**나 **유틸리티**로 뺄 부분을 생각하여 코드를 모듈화하고 재사용성을 높입니다.
+
+## 예시: React에서 통로 인터페이스 활용하기
+
+### 문제 상황
+
+React에서 버튼 컴퍼넌트를 여러 개 사용하고 있는데, 모든 버튼 클릭 시 **로깅**과 **에러 처리**를 공통적으로 수행해야 합니다. 매번 개별 컴퍼넌트에서 이 로직을 반복하면 코드 중복이 발생하고 유지보수가 어려워집니다.
+
+**기존 코드:**
+
+```tsx
+function MyButton({ onClick }) {
+  const handleClick = (event) => {
+    try {
+      logEvent("버튼 클릭");
+      if (onClick) {
+        onClick(event);
+      }
+    } catch (error) {
+      console.error("에러 발생:", error);
+    }
+  };
+
+  return <button onClick={handleClick}>클릭</button>;
+}
+```
+
+- 각 버튼 컴퍼넌트마다 `handleClick` 함수에서 로깅과 에러 처리를 직접 수행하고 있습니다.
+- 버튼이 여러 개일 경우, 이 로직이 반복되어 코드 중복이 발생합니다.
+
+### 통로 인터페이스를 사용하여 개선
+
+**`withLogging` HOC(Higher-Order Component) 생성:**
+
+```tsx
+// withLogging.tsx
+import React from "react";
+import { logEvent, reportError } from "./logger";
+
+function withLogging(WrappedComponent) {
+  return function LoggingComponent(props) {
+    const { onClick, ...rest } = props;
+
+    const handleClick = (event) => {
+      try {
+        logEvent("버튼 클릭", { timestamp: Date.now() });
+        if (onClick) {
+          onClick(event);
+        }
+      } catch (error) {
+        reportError(error);
+      }
+    };
+
+    return <WrappedComponent onClick={handleClick} {...rest} />;
+  };
+}
+
+export default withLogging;
+```
+
+- `withLogging`이라는 HOC를 만들어, 공통적인 로깅과 에러 처리 로직을 감쌌습니다.
+- `WrappedComponent`의 `onClick` 이벤트를 감싸서 로깅과 에러 처리를 추가합니다.
+
+**로깅 함수 (`logger.ts`):**
+
+```tsx
+// logger.ts
+export function logEvent(eventName, data) {
+  // 실제 로깅 로직 구현 (예: 서버로 전송)
+  console.log(`이벤트: ${eventName}`, data);
+  // 또는 외부 로깅 서비스로 전송할 수 있습니다.
+}
+
+export function reportError(error) {
+  // 실제 에러 보고 로직 구현
+  console.error("에러 발생:", error);
+  // 에러를 모니터링 서비스로 전송할 수 있습니다.
+}
+```
+
+- 로깅과 에러 처리를 담당하는 함수를 별도의 모듈로 분리하여 관리합니다.
+- 로깅 방식이 변경되면 이 파일만 수정하면 됩니다.
+
+**개선된 `MyButton` 컴퍼넌트:**
+
+```tsx
+// MyButton.tsx
+import withLogging from "./withLogging";
+
+function MyButton(props) {
+  return <button {...props}>클릭</button>;
+}
+
+export default withLogging(MyButton);
+```
+
+- `MyButton` 컴퍼넌트는 이제 로깅과 에러 처리 로직을 신경 쓸 필요 없이 본연의 역할에 집중할 수 있습니다.
+- `withLogging`을 통해 필요한 로직이 자동으로 추가됩니다.
+
+**다른 컴퍼넌트에서도 재사용 가능:**
+
+```tsx
+// SubmitButton.tsx
+import withLogging from "./withLogging";
+
+function SubmitButton(props) {
+  return <button {...props}>제출</button>;
+}
+
+export default withLogging(SubmitButton);
+```
+
+### 장점
+
+- **코드 중복 감소**: 로깅과 에러 처리 로직을 한 곳에서 관리하여, 각 컴퍼넌트에서 반복적으로 작성할 필요가 없습니다.
+- **유지보수성 향상**: 로깅 방식이나 에러 처리 로직이 변경될 경우, `withLogging` HOC만 수정하면 됩니다.
+- **컴퍼넌트 집중도 향상**: 개별 컴퍼넌트는 본연의 UI와 기능에만 집중할 수 있습니다.
+- **일관성 제공**: 모든 컴퍼넌트에서 동일한 방식으로 로깅과 에러 처리를 수행하여, 일관된 동작을 보장합니다.
+
+## 통로 인터페이스와 유사한 접근 방식의 적용
+
+### 거꾸로 코딩하기
+
+**마지막 결과를 먼저 정의하고 필요한 부분을 채워나가기**
+
+### 테스트 우선 코딩 (TDD)
+
+**테스트를 먼저 작성하여 컴퍼넌트의 요구 사항을 명확히 정의**
+
+- 테스트를 먼저 작성하여 컴퍼넌트가 충족해야 할 조건을 정의합니다.
+- 컴퍼넌트 구현 시 테스트를 통과하도록 작성하여 기능을 보장합니다.
+
+### 도우미 설계
+
+**공통 로직이나 유틸리티 함수를 미리 설계하여 코드의 재사용성 향상**
+
+- 로깅과 에러 처리를 담당하는 함수를 별도로 분리하여 관리합니다.
+- 필요한 곳에서 import하여 사용함으로써 코드의 재사용성과 모듈화를 높입니다.

@@ -1,0 +1,79 @@
+# 대칭으로 맞추기
+
+## 요약
+
+흔히들 말하는 '코드 컨벤션'에 해당하는 이야기라고 생각했어요.  
+결국 우리의 사고 흐름은, 일관되었을 때 가장 효율적으로 전개되기 때문에, 코드 역시 일관되게 맞추어야 한다는 의미에요.
+
+## 예제
+
+음, 일단 회사에서 컨벤션을 예시로 드는 게 가장 좋겠죠?  
+저희 같은 경우, 당장 기억에 남는 재밌는 컨벤션은 다음과 같습니다.
+
+### 초기화 시 없는 값은 `undefined`, 업데이트 시에는 `null`
+
+이전부터 꽤 많은 논의가 있었던 컨벤션이었는데요.  
+강경 `null`파로서 꽤나 많은 혼란이 왔지만, 이를 꾸준히 지키고 있어요.
+
+결국 중요한 건 내가 맞다는 합리성이 아니라, 팀 차원에서의 코드의 일관성이기 때문이지요 :)
+
+```tsx
+const [data, setData] = useState<undefined | null | Data>(undefined);
+
+useEffect(() => {
+  async function loadData() {
+    const { data } = await foo();
+
+    setData(loadData());
+  }
+  loadData();
+}, []);
+```
+
+### 삼항연산자 중첩 금지
+
+```ts
+// Good
+
+const isExample = a ? b : c; // 1번만 삼항연산자를 사용해도 무방합니다.
+
+
+const isExample2 = (() =>{
+	if (a) {
+		return b;
+	}
+
+	if (c) {
+		return d;
+	}
+
+	return e;
+}());
+
+
+// Bad
+const isExample2 = a
+	? b
+	: c
+		? d
+		: e; // 삼항연산자 2개를 중첩하는 것은 지양합니다.
+```
+
+## 마치며
+
+### 여러분의 숨겨서 사용하는(?) 컨벤션은 무엇인가요?
+
+일단 저의 ~몰래 애용하는 컨벤션~은, 가급적 `Array.prototype.includes`를 지양하고 `Set.prototype.has`를 사용합니다.
+
+```ts
+// Bad
+console.log(["string", "number"].includes(typeof value));
+
+// Good
+const validTypeSet = new Set(["string", "number"]);
+console.log(validTypeSet.has(typeof value));
+```
+
+이유라면, 좀 더 집합 개념에서 포함된다는 의미도 되거니와, 타입 추론이 잘되기 때문입니다.
+
+> 여러분의 애용하는 컨벤션이 있다면 한 번 공유해볼까요?! 😉

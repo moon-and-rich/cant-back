@@ -1,0 +1,45 @@
+# CHAPTER 07. 선언과 초기화를 함께 옮기기
+
+- 초기화 문제는 자바스크립트 const 키워드로 해결할 수 있다.
+
+```js
+const x = 3;
+
+x = 4; // error
+```
+
+- 함수 내부에서 값을 구하고 return 해야 한다면, 해당 값은 return 전에 작성한다.
+
+```js
+// as-is
+function f1(value1, value2) {
+
+
+  ...
+
+
+  const value3 = ...
+
+
+  ...
+
+
+  return { value1, value2, value3 }
+}
+
+// to-be
+
+function f1(value1, value2) {
+
+
+  ...
+
+
+  ...
+
+  const value3 = ...
+
+
+  return { value1, value2, value3 }
+}
+```

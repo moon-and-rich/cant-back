@@ -1,0 +1,83 @@
+# CHAPTER 05. 읽는 순서
+
+- lint를 통해서 읽는 순서를 정할 수 있다.
+
+### @trivago/prettier-plugin-sort-imports
+
+- import 하는 코드의 순서 및 그룹화 할 수 있다.
+
+
+```js
+// as-is
+import React, {
+  FC,
+  useEffect,
+  useRef,
+  ChangeEvent,
+  KeyboardEvent,
+} from "react";
+import { logger } from "@core/logger";
+import { reduce, debounce } from "lodash";
+import { Message } from "../Message";
+import { createServer } from "@server/node";
+import { Alert } from "@ui/Alert";
+import { repeat, filter, add } from "../utils";
+import { initializeApp } from "@core/app";
+import { Popup } from "@ui/Popup";
+import { createConnection } from "@server/database";
+
+// to-be
+import { debounce, reduce } from "lodash";
+import React, {
+  ChangeEvent,
+  FC,
+  KeyboardEvent,
+  useEffect,
+  useRef,
+} from "react";
+
+import { createConnection } from "@server/database";
+import { createServer } from "@server/node";
+
+import { initializeApp } from "@core/app";
+import { logger } from "@core/logger";
+
+import { Alert } from "@ui/Alert";
+import { Popup } from "@ui/Popup";
+
+import { Message } from "../Message";
+import { add, filter, repeat } from "../utils";
+```
+
+<br />
+
+### stylelint
+
+- 스타일 규칙의 순서를 정할 수 있다.
+
+```js
+// as-is
+const Box = styled.div`
+  height: 200px;
+  width: 200px;
+  padding-left: 20px;
+  padding-right: 20px;
+  font-size: 12px;
+  line-height: 20px;
+  border-top: 1px solid black;
+`;
+
+// to-be
+export const Box = styled.div`
+  width: 200px;
+  height: 200px;
+
+  padding-left: 20px;
+  padding-right: 20px;
+
+  font-size: 12px;
+  line-height: 20px;
+
+  border-top: 1px solid black;
+`;
+```

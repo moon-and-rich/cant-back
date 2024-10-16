@@ -1,0 +1,115 @@
+import { Callout } from "nextra/components";
+
+# 비슷한 코드끼리
+
+## 구분이 될 때는 두 부분 사이에 빈 줄을 넣어 분리
+
+긴 코드를 읽다 보면 특정 부분들이 '이렇게 하고', '저렇게 하는구나'라고 자연스럽게 구분될 때가 있습니다. 이런 경우 가장 단순하면서도 효과적인 정리법은 두 부분 사이에 **빈 줄**을 넣어 분리하는 것입니다.
+
+### 사례
+
+빈 줄로 코드를 구분하면 각 부분의 역할을 더욱 명확하게 드러낼 수 있으며, 이를 통해 코드를 읽는 사람이 자연스럽게 코드의 흐름을 파악할 수 있습니다.
+
+#### AS-IS
+
+```tsx
+import { useState, useRef } from "react";
+
+function OrderForm() {
+  const [order, setOrder] = useState({ item: "", quantity: 0 });
+  const quantityInputRef = useRef(null);
+
+  const handleItemChange = (e) => setOrder({ ...order, item: e.target.value });
+
+  const focusQuantityInput = () => {
+    if (quantityInputRef.current) {
+      quantityInputRef.current.focus();
+    }
+  };
+
+  const handleSubmit = () => {
+    console.log("Order submitted:", order);
+    focusQuantityInput();
+  };
+
+  return (
+    <div>
+      <input type="text" value={order.item} onChange={handleItemChange} />
+      <input
+        type="number"
+        ref={quantityInputRef}
+        value={order.quantity}
+        onChange={(e) => setOrder({ ...order, quantity: e.target.value })}
+      />
+      <button onClick={handleSubmit}>Submit Order</button>
+    </div>
+  );
+}
+```
+
+위 코드는 `ref`와 관련된 부분(`quantityInputRef`)이 코드 중간에 위치해 있고, 관련된 핸들러(`focusQuantityInput`)도 함께 묶이지 않아 전체적인 흐름을 파악하기 어렵습니다.
+
+#### TO-BE
+
+```tsx
+import { useState, useRef } from "react";
+
+function OrderForm() {
+  const [order, setOrder] = useState({ item: "", quantity: 0 });
+
+  // ref와 관련된 부분을 그룹화
+  const quantityInputRef = useRef<HTMLInputElement>(null);
+  const focusQuantityInput = () => {
+    if (quantityInputRef.current) {
+      quantityInputRef.current.focus();
+    }
+  };
+
+  // 상태 업데이트 핸들러를 그룹화
+  const handleItemChange = (e) => setOrder({ ...order, item: e.target.value });
+  const handleQuantityChange = (e) =>
+    setOrder({ ...order, quantity: e.target.value });
+
+  // 제출 핸들러
+  const handleSubmit = () => {
+    console.log("Order submitted:", order);
+    focusQuantityInput();
+  };
+
+  return (
+    <div>
+      <input type="text" value={order.item} onChange={handleItemChange} />
+      <input
+        type="number"
+        ref={quantityInputRef}
+        value={order.quantity}
+        onChange={handleQuantityChange}
+      />
+
+      <button onClick={handleSubmit}>Submit Order</button>
+    </div>
+  );
+}
+```
+
+### 변경으로 인한 개선점
+
+#### 가독성 향상:
+
+- `ref`와 관련된 코드(`quantityInputRef`와 `focusQuantityInput`)를 함께 그룹화하여, 해당 ref와 관련된 기능이 어디에 정의되어 있는지 쉽게 파악할 수 있게 했습니다.
+
+- 상태 업데이트 핸들러와 제출 핸들러 사이에 빈 줄을 넣어 각 부분의 역할을 명확히 구분했습니다.
+
+#### 유지보수성:
+
+- 관련된 기능을 함께 묶어 두어, 나중에 코드를 수정하거나 확장할 때 어떤 부분이 서로 관련이 있는지 쉽게 알 수 있습니다.
+
+## 정리
+
+`ref`와 관련된 코드와 핸들러들을 함께 묶어두면 각 코드 블록의 역할이 명확해집니다.
+관련된 코드를 함께 묶고 빈 줄을 활용해 정리함으로써 가독성과 유지보수성을 향상시킬 수 있습니다.
+
+<Callout>
+  복리라는 멋진 개념이 있습니다. 소프트웨어 설계 또한 복리처럼 뒤따르는
+  소프트웨어 설계를 더 쉽게 만듭니다.
+</Callout>

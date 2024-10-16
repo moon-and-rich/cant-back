@@ -1,1 +1,65 @@
-# hi
+# 선언과 초기화를 함께 옮기기
+
+## 변수 선언과 초기화과 떨어져 있다면 초기화를 변수 선언 근처로 이동하자
+
+타입이 포함된 선언과 초기화 코드가 떨어져 있다면 읽기 더 어려워집니다. 한참 뒤에야 초기화 코드를 보게 된다면, 이미 변수가 아닌 맥락에서 선언되었는지 잊어버릴지도 모르니까요.
+
+### 문제가 있는 코드
+
+```tsx
+function Greeting({ isLoggedIn }: { isLoggedIn: boolean }) {
+  let message: string;
+
+  if (isLoggedIn) {
+    message = "환영합니다!";
+  } else {
+    message = "로그인이 필요합니다.";
+  }
+
+  return <h1>{message}</h1>;
+}
+```
+
+### 개선된 코드
+
+```tsx
+function Greeting({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const message = isLoggedIn ? "환영합니다!" : "로그인이 필요합니다.";
+
+  return <h1>{message}</h1>;
+}
+```
+
+## 변수 사이에는 데이터 종속이 있음을 존중하기
+
+선언과 초기화를 함께 위치시키는 정리를 할 때, 순서를 주의해야 합니다. A의 조건에 따라 초기화 되는 B의 변수의 경우에 A보다 먼저 선언되서는 안됩니다
+
+### 문제가 있는 코드
+
+```tsx
+function calculateTotal() {
+  const total = price * quantity;
+
+  const price = 100;
+  const quantity = 5;
+
+  return total;
+}
+```
+
+### 개선된 코드
+
+```tsx
+function calculateTotal() {
+  const price = 100;
+  const quantity = 5;
+
+  const total = price * quantity;
+
+  return total;
+}
+```
+
+## BONUS
+
+사실 너무 습관화되어있기도 하고 `var`나 `let` 같은 변수 선언 키워드를 사용하지 않는 것이 일반적이라 크게 와닿지 않았던 파트였습니다.

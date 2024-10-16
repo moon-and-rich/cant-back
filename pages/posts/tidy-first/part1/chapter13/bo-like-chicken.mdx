@@ -1,0 +1,200 @@
+# 하나의 더미
+
+## 코드가 여러 작은 조각으로 나뉘어 이해하기 어려울 때, 필요한 만큼의 코드를 하나로 모아 더미(One Pile)처럼 만들고 나서 정리하세요. 이 과정은 코드를 더 쉽게 읽고 이해하는 데 도움이 되며, 응집도를 높일 수 있습니다.
+
+코드를 작성하는 것보다 더 큰 비용은 코드를 읽고 이해하는 데 소요됩니다. 코드를 한곳에 모으고 정리하면, 여러 코드 조각을 한 번에 파악할 수 있어 유지보수가 용이해집니다.
+
+작은 코드 조각을 선호하지만, 이들이 서로 복잡하게 얽혀 있으면 오히려 이해하기가 더 어려워집니다. 이럴 때는 먼저 흩어진 코드를 한데 모은 후, 이해하기 어려운 부분을 추출하여 재정리하는 것이 좋습니다.
+
+### 코드 정리가 필요한 증상들
+
+- **길고 반복되는 인자 목록:** 인자가 많을수록 코드를 이해하기 어렵게 만듭니다.
+- **반복되는 코드:** 특히 반복되는 조건문은 코드를 복잡하게 만들 수 있습니다.
+- **부적절한 도우미 함수 이름:** 함수의 목적이 모호해집니다.
+- **공유되어 변경에 취약한 데이터 구조:** 데이터가 여러 곳에서 공유되고 변경되면 관리가 힘들어집니다.
+
+## 정리 방법
+
+### 사례
+
+React 컴포넌트에서 상태, 로직, 이벤트 처리가 여러 곳에 분산되어 있고, 이로 인해 컴포넌트가 복잡해진 경우를 정리해보겠습니다.
+
+#### AS-IS (여러 조각으로 흩어져 있는 코드)
+
+```tsx
+import { useState, useEffect } from "react";
+
+function UserProfile() {
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/user");
+      const data = await response.json();
+      setUsername(data.username);
+      setEmail(data.email);
+    } catch (e) {
+      setError("Failed to fetch user data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUsernameChange = (e) => {
+    setUsername(e.target.value);
+  };
+
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+  };
+
+  const handleSubmit = () => {
+    if (!username || !email) {
+      setError("Both fields are required");
+      return;
+    }
+    setError("");
+    console.log("Submitting:", { username, email });
+  };
+
+  return (
+    <div>
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <>
+          <input
+            type="text"
+            value={username}
+            onChange={handleUsernameChange}
+            placeholder="Username"
+          />
+          <input
+            type="email"
+            value={email}
+            onChange={handleEmailChange}
+            placeholder="Email"
+          />
+          {error && <p>{error}</p>}
+          <button onClick={handleSubmit}>Submit</button>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+위 코드는 여러 부분으로 흩어져 있습니다. 상태, 핸들러, 유효성 검사 로직이 분리되어 있어 전체적인 흐름을 이해하기 어렵습니다.
+
+#### TO-BE (코드를 한곳에 모은 후 정리)
+
+```tsx
+import { useState, useEffect } from "react";
+
+function UserProfile() {
+  // 하나의 상태 객체로 모으기
+  const [userData, setUserData] = useState({
+    username: "",
+    email: "",
+    error: "",
+    loading: false,
+  });
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  // 데이터를 한 곳에 모아 상태 업데이트
+  const fetchUserProfile = async () => {
+    setUserData((prev) => ({ ...prev, loading: true }));
+    try {
+      const response = await fetch("/api/user");
+      const data = await response.json();
+      setUserData((prev) => ({
+        ...prev,
+        username: data.username,
+        email: data.email,
+        loading: false,
+      }));
+    } catch (e) {
+      setUserData((prev) => ({
+        ...prev,
+        error: "Failed to fetch user data",
+        loading: false,
+      }));
+    }
+  };
+
+  // 핸들러 함수 정리 및 통합
+  const handleChange = (field) => (e) => {
+    setUserData((prev) => ({ ...prev, [field]: e.target.value }));
+  };
+
+  const handleSubmit = () => {
+    const { username, email } = userData;
+
+    if (!username || !email) {
+      setUserData((prev) => ({ ...prev, error: "Both fields are required" }));
+      return;
+    }
+
+    setUserData((prev) => ({ ...prev, error: "" }));
+    console.log("Submitting:", { username, email });
+  };
+
+  return (
+    <div>
+      {userData.loading ? (
+        <p>Loading...</p>
+      ) : (
+        <>
+          <input
+            type="text"
+            value={userData.username}
+            onChange={handleChange("username")}
+            placeholder="Username"
+          />
+          <input
+            type="email"
+            value={userData.email}
+            onChange={handleChange("email")}
+            placeholder="Email"
+          />
+          {userData.error && <p>{userData.error}</p>}
+          <button onClick={handleSubmit}>Submit</button>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+### 변경으로 인한 개선점
+
+#### 응집도 향상:
+
+- 여러 상태(`username`, `email`, `error`)를 하나의 객체(`formData`)로 모아 관리함으로써 상태 관리를 일관성 있게 할 수 있습니다.
+
+#### 가독성 향상:
+
+- `handleChange` 함수로 `username`과 `email`의 변경 로직을 통합하여, 중복 코드를 줄이고 코드를 더 이해하기 쉽게 만들었습니다.
+
+#### 유지보수성:
+
+- 상태와 관련된 로직을 한 곳에 모았기 때문에, 변경이 필요한 부분을 쉽게 찾아 수정할 수 있습니다.
+
+## 정리
+
+- 흩어진 코드 조각을 한데 모아 큰 더미로 만든 후, 이를 정리하면 코드의 가독성과 응집도가 높아집니다.
+- 코드를 한 곳에 모으는 과정은 상태, 로직, 이벤트 핸들러를 통합하여 관리하는 것으로 시작할 수 있습니다.
+- 코드 정리를 선행하면, 코드의 복잡성을 줄이고 유지보수에 드는 노력을 줄일 수 있습니다.
+
+> 응집도를 올린 후 코드를 정리하면서 결합도를 낮추거나 리팩터링하자는 내용으로 이해됩니다...

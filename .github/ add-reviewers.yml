@@ -1,0 +1,18 @@
+name: Add Reviewers to Pull Requests
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  add-reviewers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Add Reviewers
+        uses: peter-evans/review-assigner@v2
+        with:
+          reviewers: |
+            JengYoung
+            dkmqflx
+            BO-LIKE-CHICKEN

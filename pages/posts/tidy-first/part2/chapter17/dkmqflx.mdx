@@ -1,0 +1,97 @@
+# CHAPTER 17. 연쇄적인 정리
+
+> 코드를 계속 정리하고 싶은 충동을 관리하는 것도 코드 정리의 핵심 기술입니다.
+
+> 제가 권하는 것은 아주 작은 단계로 나누어 코드를 정리하는 방식을 고수하면서 실험해 보는 것입니다. 그러면서 각 단계를 최적화하세요.
+
+### 대칭으로 맞추기
+
+- styled component를 사용할 때 컴포넌트 내부에 style 코드를 작성하는 경우
+
+```js
+
+const Page = () => {
+
+  ...
+
+}
+
+
+const UI = styled.ui``
+
+const LI = styled.li``
+
+```
+
+### 새로운 인터페이스로 기존 루틴 부르기
+
+"Favor Composition Over Inheritance"
+
+- 컴포지션을 통해 부모와 자식 클래스가 강하게 커플링 되는 문제를 해결할 수 있다
+
+- 타입스크립트에서는 interface 키워드를 통해 더 유연하게 인스턴스를 전달할 수 있다.
+
+- 아래 코드처럼 생성자로 전달받을 수 있는 인자의 타입을 interface로 정의해주면, 해당 interface를 구현하는 모든 클래스의 인스턴스를 인자로 전달받을 수 있다.
+
+```ts
+// ClassA의 인스턴스만 전달받을 수 있다.
+class classA{
+
+}
+
+class ConstructorWithClass {
+  constructor(private class: ClassA) {}
+}
+
+const classA = new ConstructorWithClass(new classA())
+const classB = new ConstructorWithClass(new classB()) // 다른 class의 인스턴스 전달하면 에러 발생
+
+
+
+// interface를 구현하는 모든 클래스를 전달받을 수 있다.
+interface InterfaceA {
+  foo():void;
+}
+
+class A implements InterfaceA {
+  foo(){}
+}
+class B implements InterfaceA {
+  foo(){}
+}
+
+class ConstructorWithInterface {
+  constructor(private obj: InterfaceA) {}
+}
+
+// InterfaceA를 구현하는 모든 인스턴스를 전달받을 수 있다.
+const a = new ConstructorWithInterface(new A())
+const b = new ConstructorWithInterface(new B())
+
+```
+
+### 명시적인 매개변수
+
+- 타입스크립트를 사용하는 경우, 매개변수로 객체를 전달할 때 readonly를 사용해서 변경할 수 없는 값이라는 것을 명시해준다.
+
+```ts
+const arr = (readonly parmas: number[]) => {
+
+  ...
+
+};
+```
+
+### 설명하는 주석
+
+> 설명하는 변수나 설명하는 상수, 설명하는 도우미 따위의 도입으로 가능하다면, 주석에 있는 정보를 코드로 옮깁니다.
+
+- Chapter08, 09에서 다룬 예시
+
+### 불필요한 주석 지우기
+
+> 절대적으로 완전히 중복된 주석만 삭제해야 합니다.
+
+### 결론
+
+> 너무 많이, 너무 빠르게 변경하지 않도록 주의하세요.

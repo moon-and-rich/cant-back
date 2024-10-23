@@ -1,3 +1,107 @@
 # 보호 구문
 
 ## 요약
+
+우리가 쉽게 접할 수 있는 용어로는 `early return`이지 않을까 싶어요.
+요지는, 현재 의도하는 흐름에 제약을 주는 조건이 있다면 flat하게 return 문을 적는 데 있어요.
+
+## 예제
+
+제 레포지토리에 존재하는 유틸 함수인 `isTypeOf`를 리팩토링해보겠습니다.
+
+```ts
+type JavascriptTypeName =
+  | "string"
+  | "number"
+  | "boolean"
+  | "bigint"
+  | "symbol"
+  | "undefined"
+  | "array"
+  | "function"
+  | "object";
+
+export const isTypeOf = <T>(
+  target: T,
+  type: JavascriptTypeName | JavascriptTypeName[]
+) => {
+  const typeSet = new Set<T | JavascriptTypeName>([type].flat());
+
+  if (typeSet.has("array")) {
+    if (Array.isArray(target)) {
+      return true;
+    }
+  } else {
+    return typeSet.has(typeof target);
+  }
+};
+```
+
+실제 구현에는 문제가 없지만, 위 코드는 다음과 같은 개선이 필요해요.
+
+- 분기에 대한 보호구문이 관심사별로 정리되지 않았어요.
+- 보호구문이 중첩되었다는 것은, 하위 조건문을 볼 때 상위 조건문을 떠올려야 하므로 가독성이 떨어져요.
+
+## 개선
+
+### 코드의 의도에 제약을 주는 조건을 선제적으로 적기
+
+이 코드의 역할은 결국, `target`이 의도하는 `type`에 맞는지를 검사하는 것이에요.  
+따라서, 의도에 가장 부합하는 `else`문을 최하단에 놓되, `typeof`에 있어 제약 조건을 주는 `array` 예외 케이스만 상위에서 early return 시켜줄게요.
+
+```ts
+export const isTypeOf = <T>(
+  target: T,
+  type: JavascriptTypeName | JavascriptTypeName[]
+) => {
+  const typeSet = new Set<T | JavascriptTypeName>([type].flat());
+
+  if (typeSet.has("array")) {
+    if (Array.isArray(target)) {
+      return true;
+    }
+
+    return;
+  }
+
+  return typeSet.has(typeof target);
+};
+```
+
+### 불필요하게 분리된 조건문을 합치기
+
+early return 문에서, 현재 중첩된 보호구문이 굳이 필요하나 싶어요.  
+단순히 `기재한 타입이 맞는가?`를 검사하는 데 있어, 심화된 코드가 나올 수 있는지 확장성을 고려해볼 때, 보호구문을 중첩으로 분기할 필요가 없을 것이라 판단했어요.
+
+보호구문 역시 결국 관심사끼리 묶어, 선언적으로 작성해봅시다.
+
+```ts
+export const isTypeOf = <T>(
+  target: T,
+  type: JavascriptTypeName | JavascriptTypeName[]
+) => {
+  const typeSet = new Set<T | JavascriptTypeName>([type].flat());
+
+  const isValidArray = typeSet.has("array") && Array.isArray(target);
+
+  if (isValidArray) {
+    return true;
+  }
+
+  return typeSet.has(typeof target);
+};
+```
+
+## 마치며
+
+### 생각해볼 점
+
+#### 7 ~ 8개가 되는 보호구문이라면, 어떻게 관리하는 것이 좋을까
+
+early return은 항상 정답처럼 보이며, 합리적이라 생각해요.  
+하지만, 간혹 정말 복잡한 비즈니스 로직을 만나면 이러한 early return으로 가독성을 높이기에는 한계가 존재하기도 해요.
+
+또한, 저자는 헬퍼 함수로 추출하여 관리할 것을 권장했지만, 얼만큼 헬퍼 함수를 쪼갤지에 대한 고민도 생길 때가 많아요.  
+헬퍼 함수로 쪼개는 것 역시 얼핏 지당한 말처럼 보이지만, 결국 리소스를 효율적으로 작업해야 하는 개발자 입장에서는 오버엔지니어링을 야기하기 쉬운 덫처럼 느껴지기도 합니다.
+
+이 글을 보는 여러분께서는 어떤 생각이 드시는가요?

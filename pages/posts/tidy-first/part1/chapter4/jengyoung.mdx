@@ -1,0 +1,178 @@
+# 새로운 인터페이스로 기존 루틴 부르기
+
+## 요약
+
+인터페이스가 간혹 어려운 루틴들은 코드 작성에도 힘들거니와, 이해하는데도 어려워요.  
+따라서 이를 해결하기 위해서는, 새로 인터페이스를 만드는 방법이에요.  
+이를 토대로, 설계에 대한 부담을 덜고, 점진적으로 변경할 수 있도록 해요.
+
+다음과 같이 설계하면 더욱 쉬워요.
+
+- 거꾸로 코딩하기: 루틴의 결과 코드를 먼저 확보하고 코딩하기.
+- 테스트 우선 코딩: 테스트 코드를 먼저 작성하기.
+- 도우미 설계: 헬퍼 함수가 있는지, 어떻게 설계할 것인지 확인 및 구상하기.
+
+## 예제
+
+### 커스텀 모달 props 리팩토링하기
+
+현재 ~~어느 프로젝트~~에는 다음과 같이 커스텀 모달을 사용하고 있어요.
+
+```tsx
+export function Custom({
+  id,
+  className,
+  visible,
+
+  width,
+  minWidth,
+  maxWidth,
+  height,
+  minHeight,
+  maxHeight,
+  padding,
+  borderRadius,
+
+  maskClosable = false,
+  onAfterOpen,
+  onClose,
+
+  closeButton,
+
+  children,
+}: TCustomModalProps) {
+  const { ref, portalTarget } = useDialog({
+    visible,
+    onAfterOpen,
+    onClose,
+    maskClosable,
+  });
+
+  return (
+    <ModalBackground visible={visible} portalTarget={portalTarget}>
+      <CustomModalWithMotion
+        id={id}
+        className={className}
+        ref={ref}
+        key={visible ? "modal--open" : "modal--close"}
+        visible={visible}
+        width={width}
+        minWidth={minWidth}
+        maxWidth={maxWidth}
+        height={height}
+        minHeight={minHeight}
+        maxHeight={maxHeight}
+        padding={padding}
+        borderRadius={borderRadius}
+        onClose={onClose}
+        closeButton={closeButton}
+        // animation
+        initial={modalAnimation.initial}
+        animate={modalAnimation.animate}
+        exit={modalAnimation.exit}
+        transition={modalAnimation.transition}
+      >
+        {children}
+      </CustomModalWithMotion>
+    </ModalBackground>
+  );
+}
+```
+
+이때, 팀원 간에서 다음과 같은 논의가 진행되었다고 가정할게요.
+
+- 🚨 관심사 별로 묶었으면 좋겠어요!
+  - 현재 N개의 스타일이 추가될 때마다 N개의 props를 만들어주고, 관리해줘야 해요. 따라서 이를 하나의 스타일 객체에서 관리했으면 좋겠다는 생각이 들었어요.
+  - 애니메이션 객체도 문제가 있겠어요. 왜냐! 추후에 애니메이션을 위에서부터 전달받는다면, transition이라는 속성은 스타일에도 존재하기 때문이죠!
+- 커스터마이징이 한정적이에요!
+  - 특정 서비스에서는 모달 위쪽으로 무언가를 넣고 싶다고 하면 이를 대응하기가 점차 어려워져요.
+  - 유연하게 컴포넌트를 가져가되, 구체화된 컴포넌트를 직접 아토믹하게 만들어가고 싶어요!
+
+## 해결 1. 일단 인터페이스를 별도로 만들어내자
+
+갑자기 리팩토링하기에는, 모달은 생각보다 사용범위가 굉장히 많기 때문에 섣불리 전면교체하기 어려워요.
+
+이럴 때에는, 책처럼 거꾸로 먼저 생각해보는 게 필요해요. **결과는 어떻게 나올 것이다!**를 미리 정하고 코딩하는 거죠.
+
+저는 별도의 기능 추가를 바란 건 아니니, 결국 결과 코드는 이전의 코드겠지요?
+
+따라서, 먼저 다음과 같이 커스텀 모달을 리팩토링했어요.
+
+```tsx
+export function PassThroughCustom({
+  id,
+  className,
+  visible,
+
+  maskClosable = false,
+
+  onAfterOpen,
+
+  onClose,
+
+  style,
+
+  animation,
+
+  closeButton,
+
+  children,
+}: TCustomModalProps) {
+  const { ref, portalTarget } = useDialog({
+    visible,
+    onAfterOpen,
+    onClose,
+    maskClosable,
+  });
+
+  const { initial, animate, exit, transition } = animation;
+
+  const {
+    width,
+    minWidth,
+    maxWidth,
+    height,
+    minHeight,
+    maxHeight,
+    padding,
+    borderRadius,
+  } = style;
+
+  return (
+    <ModalBackground visible={visible} portalTarget={portalTarget}>
+      <CustomModalWithMotion
+        CustomModalWithMotionid={id}
+        className={className}
+        ref={ref}
+        key={visible ? "modal--open" : "modal--close"}
+        visible={visible}
+        width={width}
+        minWidth={minWidth}
+        maxWidth={maxWidth}
+        height={height}
+        minHeight={minHeight}
+        maxHeight={maxHeight}
+        padding={padding}
+        borderRadius={borderRadius}
+        onClose={onClose}
+        closeButton={closeButton}
+        // animation
+        initial={modalAnimation.initial}
+        animate={modalAnimation.animate}
+        exit={modalAnimation.exit}
+        transition={modalAnimation.transition}
+      >
+        {children}
+      </CustomModalWithMotion>
+    </ModalBackground>
+  );
+}
+```
+
+어떠한 기능도 바꾸지 않고, 인터페이스를 쉽게 바꿀 수 있었군요!
+
+이후에는 점차, 위처럼 점진적으로 기능들의 변경 없이도 다양하게 커스터마이징할 수 있겠어요.
+
+예컨대, 배경의 변경 없던지, 혹은 배경 쪽에서 특정 컴포넌트가 나와야 한다던지 말이죠!
+
+결국 기존의 로직을 유지하면서도, 안정적으로 기능을 확장시킬 수 있다는 측면에서 통로 인터페이스를 활용하면 좋은 것 같아요.
